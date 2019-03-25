@@ -1,28 +1,107 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { API, graphqlOperation } from 'aws-amplify'
+
+import Header from './components/Header'
+import Restaurants from './components/Restaurants'
+import CreateRestaurant from './components/CreateRestaurant'
+import CreateReview from './components/CreateReview'
+import Reviews from '../components/Reviews'
+import * as queries from '../graphql/queries'
+import * as mutations from '../graphql/mutations'
 
 class App extends Component {
+  state = {
+    restaurants: [],
+    selectedRestaurant: {},
+    showCreateRestaurant: false,
+    showCreateReview: false,
+    showReviews: false
+  }
+  async componentDidMount() {
+    try {
+      const rdata = await API.graphql(graphqlOperation(queries.listRestaurants))
+      const { data: { listRestaurants: { items }}} = rdata
+      console.log('items: ', items)
+      this.setState({ restaurants: items })
+    } catch(err) {
+      console.log('error: ', err)
+    }
+  }
+  viewReviews = (r) => {
+    this.setState({ showReviews: true, selectedRestaurant: r })
+  }
+  createRestaurant = async(restaurant) => {
+    this.setState({
+      restaurants: [...this.state.restaurants, restaurant]
+    })
+    try {
+      await API.graphql(graphqlOperation(
+        mutations.createRestaurant,
+        {input: restaurant}
+      ))
+    } catch(err) {
+      console.log('error creating restaurant: ', err)
+    }
+  }
+  createReview = async(id, input) => {
+    const restaurants = this.state.restaurants
+    const index = restaurants.findIndex(r => r.id === id)
+    restaurants[index].reviews.items.push(input)
+    this.setState({ restaurants })
+    await API.graphql(graphqlOperation(mutations.createReview, {input}))
+  }
+  closeModal = () => {
+    this.setState({
+      showCreateRestaurant: false,
+      showCreateReview: false,
+      showReviews: false,
+      selectedRestaurant: {}
+    })
+  }
+  showCreateRestaurant = () => {
+    this.setState({ showCreateRestaurant: true })
+  }
+  showCreateReview = r => {
+    this.setState({ selectedRestaurant: r, showCreateReview: true })
+  }
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+      <div>
+        <Header showCreateRestaurant={this.showCreateRestaurant} />
+        <Restaurants
+          restaurants={this.state.restaurants}
+          showCreateReview={this.showCreateReview}
+          viewReviews={this.viewReviews}
+        />
+        {
+          this.state.showCreateRestaurant && (
+            <CreateRestaurant
+              createRestaurant={this.createRestaurant}
+              closeModal={this.closeModal}   
+            />
+          )
+        }
+        {
+          this.state.showCreateReview && (
+            <CreateReview
+              createReview={this.createReview}
+              closeModal={this.closeModal}   
+              restaurant={this.state.selectedRestaurant}
+            />
+          )
+        }
+        {
+          this.state.showReviews && (
+            <Reviews
+              selectedRestaurant={this.state.selectedRestaurant}
+              closeModal={this.closeModal}
+              restaurant={this.state.selectedRestaurant}
+            />
+          )
+        }
       </div>
     );
   }
 }
 
-export default App;
+export default App
