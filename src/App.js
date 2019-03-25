@@ -5,9 +5,9 @@ import Header from './components/Header'
 import Restaurants from './components/Restaurants'
 import CreateRestaurant from './components/CreateRestaurant'
 import CreateReview from './components/CreateReview'
-import Reviews from '../components/Reviews'
-import * as queries from '../graphql/queries'
-import * as mutations from '../graphql/mutations'
+import Reviews from './components/Reviews'
+import * as queries from './graphql/queries'
+import * as mutations from './graphql/mutations'
 
 class App extends Component {
   state = {
